@@ -1,6 +1,5 @@
 package com.example.bank_transfer_app.controller;
 
-
 import com.example.bank_transfer_app.dto.TransferRequest;
 import com.example.bank_transfer_app.model.Customer;
 import com.example.bank_transfer_app.service.BankService;
@@ -11,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -20,83 +20,85 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BankController {
 
-    private final BankService bankService;
-    private final TransactionAuditService auditService;
+        private final BankService bankService;
+        private final TransactionAuditService auditService;
 
-    // Get all customers or search customers
-    @GetMapping("/customers")
-    public ResponseEntity<?> getCustomers(
-            @RequestParam(required = false) String keyword) {
+        @GetMapping("/customers")
+        public ResponseEntity<?> getCustomers(
+                        @RequestParam(required = false) String keyword) {
 
-        return ResponseEntity.ok(
-                bankService.searchCustomers(keyword)
-        );
-    }
-
-    // Add a new customer
-    @PostMapping("/customers")
-    public ResponseEntity<?> addCustomer(
-            @RequestBody Customer customer) {
-
-        try {
-            Customer savedCustomer =
-                    bankService.createCustomer(customer);
-
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(savedCustomer);
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                return ResponseEntity.ok(
+                                bankService.searchCustomers(keyword));
         }
-    }
 
-    // Transfer money
-    @PostMapping("/transfers")
-    public ResponseEntity<?> transfer(
-            @Valid @RequestBody TransferRequest request) {
+        @PostMapping("/customers")
+        public ResponseEntity<?> addCustomer(
+                        @RequestBody Customer customer) {
 
-        try {
-            bankService.transfer(
-                    request.getFromAccount(),
-                    request.getToAccount(),
-                    request.getAmount(),
-                    request.isSimulateFailure()
-            );
+                try {
+                        Customer savedCustomer = bankService.createCustomer(customer);
 
-            return ResponseEntity.ok(
-                    Map.of("message", "Transfer completed successfully")
-            );
+                        return ResponseEntity.status(HttpStatus.CREATED)
+                                        .body(savedCustomer);
 
-        } catch (RuntimeException e) {
-
-            // Save failed transaction separately
-            try {
-                auditService.recordFailure(
-                        request.getFromAccount(),
-                        request.getToAccount(),
-                        request.getAmount(),
-                        e.getMessage()
-                );
-            } catch (RuntimeException auditError) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of(
-                                "error", "Transfer failed and audit record could not be saved"
-                        ));
-            }
-
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+                } catch (RuntimeException e) {
+                        return ResponseEntity.badRequest()
+                                        .body(Map.of("error", e.getMessage()));
+                }
         }
-    }
 
-    // Get account transaction history
-    @GetMapping("/accounts/{accountNumber}/history")
-    public ResponseEntity<?> getAccountHistory(
-            @PathVariable String accountNumber) {
+        @PostMapping("/transfers")
+        public ResponseEntity<?> transfer(
+                        @Valid @RequestBody TransferRequest request) {
 
-        return ResponseEntity.ok(
-                bankService.getAccountHistory(accountNumber)
-        );
-    }
+                try {
+                        bankService.transfer(
+                                        request.getFromAccount(),
+                                        request.getToAccount(),
+                                        request.getAmount(),
+                                        request.isSimulateFailure());
+
+                        return ResponseEntity.ok(
+                                        Map.of("message", "Transfer completed successfully"));
+
+                } catch (RuntimeException e) {
+
+                        try {
+                                auditService.recordFailure(
+                                                request.getFromAccount(),
+                                                request.getToAccount(),
+                                                request.getAmount(),
+                                                e.getMessage());
+                        } catch (RuntimeException auditError) {
+                                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                                .body(Map.of(
+                                                                "error",
+                                                                "Transfer failed and audit record could not be saved"));
+                        }
+
+                        return ResponseEntity.badRequest()
+                                        .body(Map.of("error", e.getMessage()));
+                }
+        }
+
+        @GetMapping("/accounts/{accountNumber}/history")
+        public String history(
+                        @PathVariable String accountNumber,
+                        Model model) {
+
+                model.addAttribute(
+                                "transactions",
+                                bankService.getAccountHistory(accountNumber));
+
+                model.addAttribute(
+                                "accountNumber",
+                                accountNumber);
+
+                model.addAttribute(
+                                "totalSent",
+                                bankService.getTotalSent(accountNumber));
+
+                return "history";
+        }
+
 }
