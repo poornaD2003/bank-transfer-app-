@@ -23,7 +23,6 @@ public class BankController {
         private final BankService bankService;
         private final TransactionAuditService auditService;
 
-        // Get all customers or search customers
         @GetMapping("/customers")
         public ResponseEntity<?> getCustomers(
                         @RequestParam(required = false) String keyword) {
@@ -32,7 +31,6 @@ public class BankController {
                                 bankService.searchCustomers(keyword));
         }
 
-        // Add a new customer
         @PostMapping("/customers")
         public ResponseEntity<?> addCustomer(
                         @RequestBody Customer customer) {
@@ -49,7 +47,6 @@ public class BankController {
                 }
         }
 
-        // Transfer money
         @PostMapping("/transfers")
         public ResponseEntity<?> transfer(
                         @Valid @RequestBody TransferRequest request) {
@@ -66,7 +63,6 @@ public class BankController {
 
                 } catch (RuntimeException e) {
 
-                        // Save failed transaction separately
                         try {
                                 auditService.recordFailure(
                                                 request.getFromAccount(),
@@ -85,7 +81,6 @@ public class BankController {
                 }
         }
 
-        // Get account transaction history
         @GetMapping("/accounts/{accountNumber}/history")
         public String history(
                         @PathVariable String accountNumber,

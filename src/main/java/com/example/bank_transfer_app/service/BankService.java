@@ -6,7 +6,6 @@ import com.example.bank_transfer_app.exception.*;
 
 import lombok.RequiredArgsConstructor;
 
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +21,6 @@ public class BankService {
 
     private final BankTransactionRepository transactionRepository;
 
-    // Create customer
-    // Create customer
     @Transactional
     public Customer createCustomer(Customer customer) {
 
@@ -42,7 +39,6 @@ public class BankService {
         return customerRepository.save(customer);
     }
 
-    // Transfer money
     @Transactional(rollbackFor = Exception.class)
     public BankTransaction transfer(
             String fromAccount,
@@ -50,32 +46,27 @@ public class BankService {
             BigDecimal amount,
             boolean simulateFailure) {
 
-        // Check different accounts
         if (fromAccount.equals(toAccount)) {
             throw new InvalidTransferException(
                     "Accounts must be different accounts");
         }
 
-        // Check sender exists
         Customer sender = customerRepository
                 .getByAccountNumber(fromAccount)
                 .orElseThrow(() -> new AccountNotFoundException(
                         "Sender account not found"));
 
-        // Check receiver exists
         customerRepository
                 .getByAccountNumber(toAccount)
                 .orElseThrow(() -> new AccountNotFoundException(
                         "Receiver account not found"));
 
-        // Check amount
         if (amount == null ||
                 amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidTransferException(
                     "Amount must be greater than zero");
         }
 
-        // Withdraw money
         int debited = customerRepository.debit(
                 fromAccount, amount);
 
@@ -84,13 +75,11 @@ public class BankService {
                     "Insufficient balance");
         }
 
-        // Simulate system failure
         if (simulateFailure) {
             throw new RuntimeException(
                     "All changes were rolled back");
         }
 
-        // Deposit money
         int credited = customerRepository.credit(
                 toAccount, amount);
 
@@ -99,7 +88,6 @@ public class BankService {
                     "Receiver account not found");
         }
 
-        // Save successful transaction
         BankTransaction transaction = new BankTransaction();
 
         transaction.setFromAccount(fromAccount);
@@ -111,12 +99,10 @@ public class BankService {
         return transactionRepository.save(transaction);
     }
 
-    // Find all customers
     public List<Customer> getAllCustomers() {
         return customerRepository.findAllOrdered();
     }
 
-    // Search customers
     public List<Customer> searchCustomers(String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return getAllCustomers();
@@ -125,7 +111,6 @@ public class BankService {
         return customerRepository.searchByName(keyword);
     }
 
-    // Get total balance
     public BigDecimal getTotalBalance() {
         BigDecimal total = customerRepository.getTotalBalance();
 
@@ -137,7 +122,6 @@ public class BankService {
         return transactionRepository.findAllLatest();
     }
 
-    // Get account history
     public List<BankTransaction> getAccountHistory(
             String accountNumber) {
         return transactionRepository.findHistory(accountNumber);
@@ -158,7 +142,6 @@ public class BankService {
         return total == null ? BigDecimal.ZERO : total;
     }
 
-    // Transaction statistics
     public long getSuccessCount() {
         return transactionRepository.countByStatus(
                 TransactionStatus.SUCCESS);
@@ -169,8 +152,142 @@ public class BankService {
                 TransactionStatus.FAILED);
     }
 
-    // Count customers using native SQL
     public long getCustomerCount() {
         return customerRepository.countCustomersNative();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deposit(String account, BigDecimal amount) {
+
+        if (amount == null ||
+                amount.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new InvalidTransferException(
+                    "Deposit amount must be greater than zero");
+        }
+
+        customerRepository.getByAccountNumber(account)
+                .orElseThrow(() -> new AccountNotFoundException(
+                        "Account not found"));
+
+        int updated = customerRepository.credit(account, amount);
+
+        if (updated == 0) {
+            throw new AccountNotFoundException(
+                    "Account not found");
+        }
+
+        BankTransaction transaction = new BankTransaction();
+
+        transaction.setFromAccount("CASH_DEPOSIT");
+        transaction.setToAccount(account);
+        transaction.setAmount(amount);
+        transaction.setStatus(TransactionStatus.SUCCESS);
+        transaction.setDescription("Cash deposit");
+
+        transactionRepository.save(transaction);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void withdraw(String account, BigDecimal amount) {
+
+        if (amount == null ||
+                amount.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new InvalidTransferException(
+                    "Withdrawal amount must be greater than zero");
+        }
+
+        customerRepository.getByAccountNumber(account)
+                .orElseThrow(() -> new AccountNotFoundException(
+                        "Account not found"));
+
+        int updated = customerRepository.debit(account, amount);
+
+        if (updated == 0) {
+            throw new InsufficientBalanceException(
+                    "Insufficient balance");
+        }
+
+        BankTransaction transaction = new BankTransaction();
+
+        transaction.setFromAccount(account);
+        transaction.setToAccount("CASH_WITHDRAWAL");
+        transaction.setAmount(amount);
+        transaction.setStatus(TransactionStatus.SUCCESS);
+        transaction.setDescription("Cash withdrawal");
+
+        transactionRepository.save(transaction);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void transferWithFee(
+            String fromAccount,
+            String toAccount,
+            BigDecimal amount) {
+
+        if (fromAccount.equals(toAccount)) {
+            throw new InvalidTransferException(
+                    "Accounts must be different");
+        }
+
+        if (amount == null ||
+                amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidTransferException(
+                    "Transfer amount must be greater than zero");
+        }
+
+        customerRepository.getByAccountNumber(fromAccount)
+                .orElseThrow(() -> new AccountNotFoundException(
+                        "Sender account not found"));
+
+        customerRepository.getByAccountNumber(toAccount)
+                .orElseThrow(() -> new AccountNotFoundException(
+                        "Receiver account not found"));
+
+        customerRepository.getByAccountNumber("999999")
+                .orElseThrow(() -> new AccountNotFoundException(
+                        "Bank fee account not found"));
+
+        BigDecimal fee = amount.multiply(
+                new BigDecimal("0.01")).setScale(2, java.math.RoundingMode.HALF_UP);
+
+        BigDecimal totalDebit = amount.add(fee);
+
+        int debitResult = customerRepository.debit(
+                fromAccount, totalDebit);
+
+        if (debitResult == 0) {
+            throw new InsufficientBalanceException(
+                    "Insufficient balance including bank fee");
+        }
+
+        int creditReceiver = customerRepository.credit(
+                toAccount, amount);
+
+        if (creditReceiver == 0) {
+            throw new AccountNotFoundException(
+                    "Receiver account not found");
+        }
+
+        int creditBank = customerRepository.credit(
+                "999999", fee);
+
+        if (creditBank == 0) {
+            throw new AccountNotFoundException(
+                    "Bank fee account not found");
+        }
+
+        BankTransaction transaction = new BankTransaction();
+
+        transaction.setFromAccount(fromAccount);
+        transaction.setToAccount(toAccount);
+        transaction.setAmount(amount);
+        transaction.setStatus(TransactionStatus.SUCCESS);
+
+        transaction.setDescription(
+                "Transfer successful. Bank fee: LKR " + fee);
+
+        transactionRepository.save(transaction);
     }
 }

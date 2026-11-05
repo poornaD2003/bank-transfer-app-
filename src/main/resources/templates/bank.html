@@ -166,6 +166,11 @@
         <p class="success" th:if="${param.success}" th:text="${param.success[0]}"></p>
 
         <p class="error" th:if="${error}" th:text="${error}"></p>
+        <p th:if="${successMessage}" th:text="${successMessage}" style="color: green;">
+        </p>
+
+        <p th:if="${errorMessage}" th:text="${errorMessage}" style="color: red;">
+        </p>
 
         <!-- Dashboard Statistics -->
         <div class="stats">
@@ -337,6 +342,71 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="form-section">
+
+            <h2>Deposit Money</h2>
+
+            <form action="/deposit" method="post">
+
+                <label>Account Number</label>
+
+                <input type="text" name="accountNumber" placeholder="Enter account number" required>
+
+                <label>Deposit Amount (LKR)</label>
+
+                <input type="number" name="amount" min="0.01" step="0.01" required>
+
+                <button type="submit">Deposit Money</button>
+
+            </form>
+
+        </div>
+
+        <div class="form-section">
+
+            <h2>Withdraw Money</h2>
+
+            <form action="/withdraw" method="post">
+
+                <label>Account Number</label>
+
+                <input type="text" name="accountNumber" placeholder="Enter account number" required>
+
+                <label>Withdraw Amount (LKR)</label>
+
+                <input type="number" name="amount" min="0.01" step="0.01" required>
+
+                <button type="submit">Withdraw Money</button>
+
+            </form>
+
+        </div>
+
+        <div class="form-section">
+
+            <h2>Transfer Money with 1% Bank Fee</h2>
+
+            <form action="/transfer-with-fee" method="post">
+
+                <label>Sender Account</label>
+
+                <input type="text" name="fromAccount" placeholder="Enter sender account" required>
+
+                <label>Receiver Account</label>
+
+                <input type="text" name="toAccount" placeholder="Enter receiver account" required>
+
+                <label>Transfer Amount (LKR)</label>
+
+                <input type="number" name="amount" min="0.01" step="0.01" placeholder="Enter amount" required>
+
+                <button type="submit">
+                    Transfer with 1% Fee
+                </button>
+
+            </form>
+
         </div>
 
     </div>
