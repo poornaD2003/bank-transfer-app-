@@ -1,0 +1,378 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Transaction System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #263445;
+        }
+
+        header {
+            background: #142d4e;
+            color: white;
+            padding: 22px 6%;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        header p {
+            margin-bottom: 0;
+            color: #d5e2f2;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card, .section {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.06);
+        }
+
+        .stat-card h3 {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .stat-card h2 {
+            color: #142d4e;
+        }
+
+        .forms {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            color: #142d4e;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px;
+            margin: 8px 0 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        button {
+            background: #1765b3;
+            color: white;
+            padding: 11px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #104b88;
+        }
+
+        .checkbox {
+            width: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 13px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #edf3fa;
+        }
+
+        a {
+            color: #1765b3;
+            text-decoration: none;
+        }
+
+        .success {
+            color: green;
+            margin-bottom: 15px;
+        }
+
+        .error {
+            color: #dc2626;
+            margin-bottom: 15px;
+        }
+
+        .status-success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-failed {
+            color: red;
+            font-weight: bold;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        @media(max-width: 600px) {
+            .container {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Bank Transaction System</h1>
+    <p>Manage customers, accounts and bank transfers</p>
+</header>
+
+<div class="container">
+
+    <p class="success" th:if="${param.success}"
+       th:text="${param.success[0]}"></p>
+
+    <p class="error" th:if="${error}"
+       th:text="${error}"></p>
+
+    <!-- Dashboard Statistics -->
+    <div class="stats">
+
+        <div class="stat-card">
+            <h3>Total Bank Balance</h3>
+            <h2>
+                LKR <span th:text="${totalBalance}">0.00</span>
+            </h2>
+        </div>
+
+        <div class="stat-card">
+            <h3>Total Customers</h3>
+            <h2 th:text="${customerCount}">0</h2>
+        </div>
+
+        <div class="stat-card">
+            <h3>Successful Transfers</h3>
+            <h2 th:text="${successCount}">0</h2>
+        </div>
+
+        <div class="stat-card">
+            <h3>Failed Transfers</h3>
+            <h2 th:text="${failedCount}">0</h2>
+        </div>
+
+    </div>
+
+    <!-- Forms -->
+    <div class="forms">
+
+        <!-- Add Customer -->
+        <div class="section">
+            <h2>Add New Customer</h2>
+
+            <form th:action="@{/customers}"
+                  th:object="${customer}"
+                  method="post">
+
+                <label>Account Number</label>
+                <input type="text"
+                       th:field="*{accountNumber}"
+                       placeholder="Enter account number"
+                       required>
+
+                <label>Full Name</label>
+                <input type="text"
+                       th:field="*{fullName}"
+                       placeholder="Enter full name"
+                       required>
+
+                <label>Email</label>
+                <input type="email"
+                       th:field="*{email}"
+                       placeholder="Enter email"
+                       required>
+
+                <label>Initial Balance</label>
+                <input type="number"
+                       th:field="*{balance}"
+                       min="0"
+                       step="0.01"
+                       placeholder="Enter balance"
+                       required>
+
+                <button type="submit">Add Customer</button>
+            </form>
+        </div>
+
+        <!-- Transfer Money -->
+        <div class="section">
+            <h2>Transfer Money</h2>
+
+            <form th:action="@{/transfer}"
+                  th:object="${transferRequest}"
+                  method="post">
+
+                <label>From Account</label>
+                <input type="text"
+                       th:field="*{fromAccount}"
+                       placeholder="Sender account number"
+                       required>
+
+                <label>To Account</label>
+                <input type="text"
+                       th:field="*{toAccount}"
+                       placeholder="Receiver account number"
+                       required>
+
+                <label>Transfer Amount (LKR)</label>
+                <input type="number"
+                       th:field="*{amount}"
+                       min="0.01"
+                       step="0.01"
+                       placeholder="Enter amount"
+                       required>
+
+                <label>
+                    <input class="checkbox"
+                           type="checkbox"
+                           th:field="*{simulateFailure}">
+                    Simulate System Failure
+                </label>
+
+                <br><br>
+
+                <button type="submit">Transfer Money</button>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Customer List -->
+    <div class="section">
+        <h2>Customer Accounts</h2>
+
+        <form th:action="@{/}" method="get">
+            <input type="text"
+                   name="keyword"
+                   placeholder="Search customer name..."
+                   th:value="${param.keyword}">
+
+            <button type="submit">Search</button>
+            <a th:href="@{/}">Clear</a>
+        </form>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Account Number</th>
+                    <th>Customer Name</th>
+                    <th>Email</th>
+                    <th>Balance (LKR)</th>
+                    <th>History</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="customer : ${customers}">
+                    <td th:text="${customer.accountNumber}"></td>
+                    <td th:text="${customer.fullName}"></td>
+                    <td th:text="${customer.email}"></td>
+                    <td th:text="${customer.balance}"></td>
+                    <td>
+                        <a th:href="@{/accounts/{accountNumber}/history(
+                            accountNumber=${customer.accountNumber})}">
+                            View History
+                        </a>
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(customers)}">
+                    <td colspan="5">No customers found.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <br>
+
+    <!-- Latest Transactions -->
+    <div class="section">
+        <h2>Latest Transactions</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>From Account</th>
+                    <th>To Account</th>
+                    <th>Amount (LKR)</th>
+                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="transaction : ${transactions}">
+                    <td th:text="${transaction.id}"></td>
+                    <td th:text="${transaction.fromAccount}"></td>
+                    <td th:text="${transaction.toAccount}"></td>
+                    <td th:text="${transaction.amount}"></td>
+
+                    <td>
+                        <span th:if="${transaction.status.name() == 'SUCCESS'}"
+                              class="status-success">SUCCESS</span>
+
+                        <span th:if="${transaction.status.name() == 'FAILED'}"
+                              class="status-failed">FAILED</span>
+                    </td>
+
+                    <td th:text="${transaction.description}"></td>
+                    <td th:text="${transaction.createdAt}"></td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(transactions)}">
+                    <td colspan="7">No transactions available.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
