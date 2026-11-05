@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Large Transfers</title>
+</head>
+<body>
+
+<h1>Large Transfers</h1>
+
+<form action="/large-transfers" method="get">
+    <label>Minimum Amount:</label>
+
+    <input type="number"
+           name="min"
+           step="0.01"
+           min="0"
+           th:value="${min}"
+           required>
+
+    <button type="submit">Search</button>
+</form>
+
+<table border="1" cellpadding="10">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>From Account</th>
+        <th>To Account</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Date</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="t : ${transactions}">
+        <td th:text="${t.id}"></td>
+        <td th:text="${t.fromAccount}"></td>
+        <td th:text="${t.toAccount}"></td>
+        <td th:text="${t.amount}"></td>
+        <td th:text="${t.status}"></td>
+        <td th:text="${t.createdAt}"></td>
+    </tr>
+    </tbody>
+</table>
+
+<br>
+
+<a href="/">Back to Home</a>
+
+</body>
+</html>

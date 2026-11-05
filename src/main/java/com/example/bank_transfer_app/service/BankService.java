@@ -143,6 +143,21 @@ public class BankService {
         return transactionRepository.findHistory(accountNumber);
     }
 
+    public List<BankTransaction> getLargeTransfers(
+            BigDecimal min) {
+
+        return transactionRepository.findLargeTransfers(min);
+    }
+
+    public BigDecimal getTotalSent(String account) {
+
+        BigDecimal total = transactionRepository.getTotalSent(
+                account,
+                TransactionStatus.SUCCESS);
+
+        return total == null ? BigDecimal.ZERO : total;
+    }
+
     // Transaction statistics
     public long getSuccessCount() {
         return transactionRepository.countByStatus(
@@ -157,10 +172,5 @@ public class BankService {
     // Count customers using native SQL
     public long getCustomerCount() {
         return customerRepository.countCustomersNative();
-    }
-
-    public @Nullable Object getTotalSent(String accountNumber) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getTotalSent'");
     }
 }
